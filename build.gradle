@@ -39,7 +39,7 @@ jar {
 
 import de.undercouch.gradle.tasks.download.Download
 task updateSpigot(type: Download) {
-    src 'http://download.true-games.org/minecraft/libs/ProtocolSupport/spigot.jar'
+    src 'http://ci.ac3-servers.eu/job/Spigot/lastSuccessfulBuild/artifact/target/Spigot/Spigot-Server/target/spigot.jar'
     dest buildDir
     onlyIfNewer true
     overwrite true
