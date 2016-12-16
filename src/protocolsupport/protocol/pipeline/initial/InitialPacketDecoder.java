@@ -15,13 +15,12 @@ import protocolsupport.api.ProtocolVersion;
 import protocolsupport.protocol.ConnectionImpl;
 import protocolsupport.protocol.pipeline.ChannelHandlers;
 import protocolsupport.protocol.pipeline.IPipeLineBuilder;
-import protocolsupport.protocol.storage.ProtocolStorage;
-import protocolsupport.utils.ServerPlatformUtils;
+import protocolsupport.protocol.serializer.ProtocolSupportPacketDataSerializer;
 import protocolsupport.utils.Utils;
 import protocolsupport.utils.Utils.Converter;
-import protocolsupport.utils.netty.ChannelUtils;
 import protocolsupport.utils.netty.ReplayingDecoderBuffer;
 import protocolsupport.utils.netty.ReplayingDecoderBuffer.EOFSignal;
+import protocolsupport.utils.nms.MinecraftServerWrapper;
 
 public class InitialPacketDecoder extends SimpleChannelInboundHandler<ByteBuf> {
 
@@ -36,6 +35,7 @@ public class InitialPacketDecoder extends SimpleChannelInboundHandler<ByteBuf> {
 	private static final EnumMap<ProtocolVersion, IPipeLineBuilder> pipelineBuilders = new EnumMap<>(ProtocolVersion.class);
 	static {
 		pipelineBuilders.put(ProtocolVersion.MINECRAFT_FUTURE, new protocolsupport.protocol.pipeline.version.v_future.PipeLineBuilder());
+		pipelineBuilders.put(ProtocolVersion.MINECRAFT_1_11, new protocolsupport.protocol.pipeline.version.v_1_11.PipeLineBuilder());
 		pipelineBuilders.put(ProtocolVersion.MINECRAFT_1_10, new protocolsupport.protocol.pipeline.version.v_1_10.PipeLineBuilder());
 		pipelineBuilders.put(ProtocolVersion.MINECRAFT_1_9_4, new protocolsupport.protocol.pipeline.version.v_1_9.r2.PipeLineBuilder());
 		IPipeLineBuilder builder19r1 = new protocolsupport.protocol.pipeline.version.v_1_9.r1.PipeLineBuilder();
@@ -113,7 +113,7 @@ public class InitialPacketDecoder extends SimpleChannelInboundHandler<ByteBuf> {
 							scheduleTask(ctx, new SetProtocolTask(this, channel, ProtocolVersion.MINECRAFT_1_5_2), ping152delay, TimeUnit.MILLISECONDS);
 						} else if (
 							(replayingBuffer.readUnsignedByte() == 0xFA) &&
-							"MC|PingHost".equals(new String(ChannelUtils.toArray(replayingBuffer.readSlice(replayingBuffer.readUnsignedShort() * 2)), StandardCharsets.UTF_16BE))
+							"MC|PingHost".equals(new String(ProtocolSupportPacketDataSerializer.toArray(replayingBuffer.readSlice(replayingBuffer.readUnsignedShort() * 2)), StandardCharsets.UTF_16BE))
 						) {
 							//definitely 1.6
 							replayingBuffer.readUnsignedShort();
@@ -147,10 +147,10 @@ public class InitialPacketDecoder extends SimpleChannelInboundHandler<ByteBuf> {
 	}
 
 	protected void setProtocol(final Channel channel, ProtocolVersion version) {
-		if (ServerPlatformUtils.isDebugging()) {
-			System.err.println(ChannelUtils.getNetworkManagerSocketAddress(channel)+ " connected with protocol version "+version);
+		ConnectionImpl connection = ConnectionImpl.getFromChannel(channel);
+		if (MinecraftServerWrapper.isDebugging()) {
+			System.err.println(connection.getAddress() + " connected with protocol version " + version);
 		}
-		ConnectionImpl connection = ProtocolStorage.getConnection(ChannelUtils.getNetworkManagerSocketAddress(channel));
 		connection.setVersion(version);
 		channel.pipeline().remove(ChannelHandlers.INITIAL_DECODER);
 		pipelineBuilders.get(version).buildPipeLine(channel, connection);
@@ -160,7 +160,7 @@ public class InitialPacketDecoder extends SimpleChannelInboundHandler<ByteBuf> {
 
 	private static ProtocolVersion attemptDecodeNettyHandshake(ByteBuf bytebuf) {
 		bytebuf.readerIndex(0);
-		return ProtocolUtils.readNettyHandshake(bytebuf.readSlice(ChannelUtils.readVarInt(bytebuf)));
+		return ProtocolUtils.readNettyHandshake(bytebuf.readSlice(ProtocolSupportPacketDataSerializer.readVarInt(bytebuf)));
 	}
 
 }

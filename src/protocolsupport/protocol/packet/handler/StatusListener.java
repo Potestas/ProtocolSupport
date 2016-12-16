@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_10_R1.CraftServer;
-import org.bukkit.craftbukkit.v1_10_R1.util.CraftIconCache;
+import org.bukkit.craftbukkit.v1_11_R1.CraftServer;
+import org.bukkit.craftbukkit.v1_11_R1.util.CraftIconCache;
 import org.bukkit.entity.Player;
 import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.util.CachedServerIcon;
@@ -20,33 +20,27 @@ import org.spigotmc.SpigotConfig;
 import com.mojang.authlib.GameProfile;
 
 import io.netty.channel.ChannelFutureListener;
-import net.minecraft.server.v1_10_R1.ChatComponentText;
-import net.minecraft.server.v1_10_R1.EntityPlayer;
-import net.minecraft.server.v1_10_R1.IChatBaseComponent;
-import net.minecraft.server.v1_10_R1.MinecraftServer;
-import net.minecraft.server.v1_10_R1.NetworkManager;
-import net.minecraft.server.v1_10_R1.PacketStatusInListener;
-import net.minecraft.server.v1_10_R1.PacketStatusInPing;
-import net.minecraft.server.v1_10_R1.PacketStatusInStart;
-import net.minecraft.server.v1_10_R1.PacketStatusOutPong;
-import net.minecraft.server.v1_10_R1.PacketStatusOutServerInfo;
-import net.minecraft.server.v1_10_R1.ServerPing;
-import net.minecraft.server.v1_10_R1.ServerPing.ServerData;
-import net.minecraft.server.v1_10_R1.ServerPing.ServerPingPlayerSample;
+import net.minecraft.server.v1_11_R1.ChatComponentText;
+import net.minecraft.server.v1_11_R1.IChatBaseComponent;
+import net.minecraft.server.v1_11_R1.PacketStatusInListener;
+import net.minecraft.server.v1_11_R1.PacketStatusInPing;
+import net.minecraft.server.v1_11_R1.PacketStatusInStart;
+import net.minecraft.server.v1_11_R1.PacketStatusOutPong;
+import net.minecraft.server.v1_11_R1.PacketStatusOutServerInfo;
+import net.minecraft.server.v1_11_R1.ServerPing;
+import net.minecraft.server.v1_11_R1.ServerPing.ServerData;
+import net.minecraft.server.v1_11_R1.ServerPing.ServerPingPlayerSample;
 import protocolsupport.api.ProtocolVersion;
 import protocolsupport.api.events.ServerPingResponseEvent;
 import protocolsupport.api.events.ServerPingResponseEvent.ProtocolInfo;
 import protocolsupport.protocol.ConnectionImpl;
-import protocolsupport.utils.ServerPlatformUtils;
+import protocolsupport.utils.nms.MinecraftServerWrapper;
+import protocolsupport.utils.nms.NetworkManagerWrapper;
 
 public class StatusListener implements PacketStatusInListener {
 
-	private static final IChatBaseComponent infoAlreadySent = new ChatComponentText("Status request has already been handled.");
-	private static final MinecraftServer server = ServerPlatformUtils.getServer();
-
-	private final NetworkManager networkManager;
-
-	public StatusListener(NetworkManager networkmanager) {
+	private final NetworkManagerWrapper networkManager;
+	public StatusListener(NetworkManagerWrapper networkmanager) {
 		this.networkManager = networkmanager;
 	}
 
@@ -57,16 +51,16 @@ public class StatusListener implements PacketStatusInListener {
 	@Override
 	public void a(PacketStatusInStart packetstatusinstart) {
 		if (sentInfo) {
-			networkManager.close(infoAlreadySent);
+			networkManager.close("Status request has already been handled.");
 		}
 		sentInfo = true;
 
-		InetSocketAddress addr = (InetSocketAddress) networkManager.getSocketAddress();
+		InetSocketAddress addr = networkManager.getAddress();
 
-		ArrayList<EntityPlayer> players = new ArrayList<>(server.getPlayerList().players);
+		ArrayList<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
 
-		String motd = server.getMotd();
-		int maxPlayers = server.getPlayerList().getMaxPlayers();
+		String motd = Bukkit.getMotd();
+		int maxPlayers = Bukkit.getMaxPlayers();
 
 		InternalServerListPingEvent bevent = new InternalServerListPingEvent(addr.getAddress(), motd, maxPlayers, players);
 		bevent.setServerIcon(Bukkit.getServerIcon());
@@ -77,12 +71,12 @@ public class StatusListener implements PacketStatusInListener {
 		maxPlayers = bevent.getMaxPlayers();
 
 		List<String> profiles = new ArrayList<>(players.size());
-		for (EntityPlayer player : players) {
-			profiles.add(player.getProfile().getName());
+		for (Player player : players) {
+			profiles.add(player.getName());
 		}
 
 		ServerPingResponseEvent revent = new ServerPingResponseEvent(
-			ConnectionImpl.getFromChannel(networkManager.channel), new ProtocolInfo(ProtocolVersion.getLatest(), server.getServerModName() + " " + server.getVersion()),
+			ConnectionImpl.getFromChannel(networkManager.getChannel()), new ProtocolInfo(ProtocolVersion.getLatest(), MinecraftServerWrapper.getModName() + " " + MinecraftServerWrapper.getVersionName()),
 			icon, motd, maxPlayers, profiles
 		);
 		Bukkit.getPluginManager().callEvent(revent);
@@ -124,8 +118,8 @@ public class StatusListener implements PacketStatusInListener {
 
 	public static class InternalServerListPingEvent extends ServerListPingEvent {
 
-		private List<EntityPlayer> players;
-		protected InternalServerListPingEvent(InetAddress address, String motd, int maxPlayers, List<EntityPlayer> players) {
+		private List<Player> players;
+		protected InternalServerListPingEvent(InetAddress address, String motd, int maxPlayers, List<Player> players) {
 			super(address, motd, maxPlayers);
 			this.players = players;
 		}
@@ -146,23 +140,7 @@ public class StatusListener implements PacketStatusInListener {
 
 		@Override
 		public Iterator<Player> iterator() throws UnsupportedOperationException {
-			return new Iterator<Player>() {
-				Iterator<EntityPlayer> iterator = players.iterator();
-				@Override
-				public boolean hasNext() {
-					return iterator.hasNext();
-				}
-
-				@Override
-				public Player next() {
-					return iterator.next().getBukkitEntity();
-				}
-
-				@Override
-				public void remove() {
-					iterator.remove();
-				}
-			};
+			return players.iterator();
 		}
 
 	}

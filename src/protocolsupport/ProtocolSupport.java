@@ -2,7 +2,9 @@ package protocolsupport;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.spigotmc.SpigotConfig;
 
+import net.minecraft.server.v1_11_R1.NetworkManager;
 import protocolsupport.commands.CommandHandler;
 import protocolsupport.injector.ServerInjector;
 import protocolsupport.injector.network.NettyInjector;
@@ -16,10 +18,8 @@ import protocolsupport.protocol.pipeline.initial.InitialPacketDecoder;
 import protocolsupport.protocol.typeremapper.id.IdRemapper;
 import protocolsupport.protocol.typeremapper.watchedentity.remapper.SpecificRemapper;
 import protocolsupport.protocol.typeskipper.id.IdSkipper;
-import protocolsupport.protocol.typeskipper.string.StringSkipper;
 import protocolsupport.server.listeners.CommandListener;
 import protocolsupport.server.listeners.PlayerListener;
-import protocolsupport.utils.ServerPlatformUtils;
 import protocolsupport.utils.netty.Allocator;
 import protocolsupport.utils.netty.Compressor;
 
@@ -28,9 +28,10 @@ public class ProtocolSupport extends JavaPlugin {
 	@Override
 	public void onLoad() {
 		AsyncErrorLogger.INSTANCE.start();
-		if (!ServerPlatformUtils.checkServerSupported()) {
+		if (!checkServerSupported()) {
 			getLogger().severe("Unsupported server version, shutting down");
 			Bukkit.shutdown();
+			return;
 		}
 		try {
 			Allocator.init();
@@ -41,7 +42,6 @@ public class ProtocolSupport extends JavaPlugin {
 			AbstractLoginListener.init();
 			LegacySound.init();
 			IdSkipper.init();
-			StringSkipper.init();
 			SpecificRemapper.init();
 			ServerInjector.inject();
 			NettyInjector.inject();
@@ -51,6 +51,16 @@ public class ProtocolSupport extends JavaPlugin {
 			t.printStackTrace();
 			Bukkit.shutdown();
 		}
+	}
+
+	private static boolean checkServerSupported() {
+		try {
+			NetworkManager.a.getName();
+			SpigotConfig.config.contains("test");
+			return true;
+		} catch (NoClassDefFoundError e) {
+		}
+		return false;
 	}
 
 	@Override

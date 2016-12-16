@@ -5,9 +5,10 @@ import protocolsupport.api.chat.ChatAPI;
 import protocolsupport.protocol.packet.ClientBoundPacket;
 import protocolsupport.protocol.packet.middle.clientbound.play.MiddleInventoryOpen;
 import protocolsupport.protocol.packet.middleimpl.ClientBoundPacketData;
+import protocolsupport.protocol.typeremapper.id.IdRemapper;
 import protocolsupport.protocol.typeskipper.id.IdSkipper;
 import protocolsupport.protocol.utils.types.WindowType;
-import protocolsupport.utils.ServerPlatformUtils;
+import protocolsupport.utils.nms.NMSUtils;
 import protocolsupport.utils.recyclable.RecyclableCollection;
 import protocolsupport.utils.recyclable.RecyclableEmptyList;
 import protocolsupport.utils.recyclable.RecyclableSingletonList;
@@ -16,11 +17,12 @@ public class InventoryOpen extends MiddleInventoryOpen<RecyclableCollection<Clie
 
 	@Override
 	public RecyclableCollection<ClientBoundPacketData> toData(ProtocolVersion version) {
-		int id = WindowType.fromName(invname).ordinal();
-		if (IdSkipper.INVENTORY.getTable(version).shouldSkip(id)) {
-			connection.receivePacket(ServerPlatformUtils.createInboundInventoryClosePacket());
+		if (IdSkipper.INVENTORY.getTable(version).shouldSkip(invname)) {
+			cache.closeWindow();
+			connection.receivePacket(NMSUtils.createInboundInventoryClosePacket());
 			return RecyclableEmptyList.get();
 		}
+		int id = WindowType.fromName(IdRemapper.INVENTORY.getTable(version).getRemap(invname)).ordinal();
 		ClientBoundPacketData serializer = ClientBoundPacketData.create(ClientBoundPacket.PLAY_WINDOW_OPEN_ID, version);
 		serializer.writeByte(windowId);
 		serializer.writeByte(id);

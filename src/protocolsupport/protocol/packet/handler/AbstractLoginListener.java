@@ -25,27 +25,25 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import net.minecraft.server.v1_10_R1.ChatComponentText;
-import net.minecraft.server.v1_10_R1.IChatBaseComponent;
-import net.minecraft.server.v1_10_R1.ITickable;
-import net.minecraft.server.v1_10_R1.LoginListener;
-import net.minecraft.server.v1_10_R1.MinecraftServer;
-import net.minecraft.server.v1_10_R1.NetworkManager;
-import net.minecraft.server.v1_10_R1.PacketLoginInEncryptionBegin;
-import net.minecraft.server.v1_10_R1.PacketLoginInListener;
-import net.minecraft.server.v1_10_R1.PacketLoginInStart;
-import net.minecraft.server.v1_10_R1.PacketLoginOutDisconnect;
-import net.minecraft.server.v1_10_R1.PacketLoginOutEncryptionBegin;
-import net.minecraft.server.v1_10_R1.PacketLoginOutSetCompression;
+import net.minecraft.server.v1_11_R1.IChatBaseComponent;
+import net.minecraft.server.v1_11_R1.ITickable;
+import net.minecraft.server.v1_11_R1.LoginListener;
+import net.minecraft.server.v1_11_R1.PacketLoginInEncryptionBegin;
+import net.minecraft.server.v1_11_R1.PacketLoginInListener;
+import net.minecraft.server.v1_11_R1.PacketLoginInStart;
+import net.minecraft.server.v1_11_R1.PacketLoginOutEncryptionBegin;
+import net.minecraft.server.v1_11_R1.PacketLoginOutSetCompression;
 import protocolsupport.ProtocolSupport;
 import protocolsupport.api.events.PlayerLoginStartEvent;
 import protocolsupport.protocol.ConnectionImpl;
 import protocolsupport.protocol.pipeline.ChannelHandlers;
 import protocolsupport.protocol.pipeline.common.PacketCompressor;
 import protocolsupport.protocol.pipeline.common.PacketDecompressor;
-import protocolsupport.utils.ServerPlatformUtils;
 import protocolsupport.utils.Utils;
 import protocolsupport.utils.Utils.Converter;
+import protocolsupport.utils.nms.MinecraftServerWrapper;
+import protocolsupport.utils.nms.NMSUtils;
+import protocolsupport.utils.nms.NetworkManagerWrapper;
 
 public abstract class AbstractLoginListener implements PacketLoginInListener, ITickable, IHasProfile {
 
@@ -64,9 +62,8 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	);
 
 	protected static final Logger logger = LogManager.getLogger(LoginListener.class);
-	protected final static MinecraftServer server = ServerPlatformUtils.getServer();
 
-	protected final NetworkManager networkManager;
+	protected final NetworkManagerWrapper networkManager;
 	protected final String hostname;
 	protected final byte[] randomBytes = new byte[4];
 	protected int loginTicks;
@@ -74,11 +71,11 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	protected LoginState state = LoginState.HELLO;
 	protected GameProfile profile;
 
-	protected boolean isOnlineMode = server.getOnlineMode();
+	protected boolean isOnlineMode = Bukkit.getOnlineMode();
 	protected boolean useOnlineModeUUID = isOnlineMode;
 	protected UUID forcedUUID = null;
 
-	public AbstractLoginListener(NetworkManager networkmanager, String hostname) {
+	public AbstractLoginListener(NetworkManagerWrapper networkmanager, String hostname) {
 		this.networkManager = networkmanager;
 		this.hostname = hostname;
 		ThreadLocalRandom.current().nextBytes(randomBytes);
@@ -90,7 +87,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	}
 
 	@Override
-	public void E_() {
+	public void F_() {
 		if (loginTicks++ == 600) {
 			disconnect("Took too long to log in");
 		}
@@ -100,11 +97,10 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	public void disconnect(String s) {
 		try {
 			logger.info("Disconnecting " + getConnectionRepr() + ": " + s);
-			ChatComponentText chatcomponenttext = new ChatComponentText(s);
-			networkManager.sendPacket(new PacketLoginOutDisconnect(chatcomponenttext), new GenericFutureListener<Future<? super Void>>() {
+			networkManager.sendPacket(NMSUtils.createLoginDisconnectPacket(s), new GenericFutureListener<Future<? super Void>>() {
 				@Override
 				public void operationComplete(Future<? super Void> future)  {
-					networkManager.close(chatcomponenttext);
+					networkManager.close(s);
 				}
 			});
 		} catch (Exception exception) {
@@ -113,9 +109,9 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	}
 
 	public void initOfflineModeGameProfile() {
-		profile = new GameProfile(networkManager.spoofedUUID != null ? networkManager.spoofedUUID : generateOffileModeUUID(), profile.getName());
-		if (networkManager.spoofedProfile != null) {
-			for (Property property : networkManager.spoofedProfile) {
+		profile = new GameProfile(networkManager.getSpoofedUUID() != null ? networkManager.getSpoofedUUID() : generateOffileModeUUID(), profile.getName());
+		if (networkManager.getSpoofedProperties() != null) {
+			for (Property property : networkManager.getSpoofedProperties()) {
 				profile.getProperties().put(property.getName(), property);
 			}
 		}
@@ -128,7 +124,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	protected abstract boolean hasCompression();
 
 	protected void enableCompresssion(int compressionLevel) {
-		Channel channel = networkManager.channel;
+		Channel channel = networkManager.getChannel();
 		if (compressionLevel >= 0) {
 			channel.pipeline()
 			.addAfter(ChannelHandlers.SPLITTER, "decompress", new PacketDecompressor(compressionLevel))
@@ -142,7 +138,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 	}
 
 	public String getConnectionRepr() {
-		return (profile != null) ? (profile + " (" + networkManager.getSocketAddress() + ")") : networkManager.getSocketAddress().toString();
+		return (profile != null) ? (profile + " (" + networkManager.getAddress() + ")") : networkManager.getAddress().toString();
 	}
 
 	@Override
@@ -156,7 +152,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 					profile = packetlogininstart.a();
 
 					PlayerLoginStartEvent event = new PlayerLoginStartEvent(
-						ConnectionImpl.getFromChannel(networkManager.channel),
+						ConnectionImpl.getFromChannel(networkManager.getChannel()),
 						profile.getName(),
 						isOnlineMode,
 						useOnlineModeUUID,
@@ -173,13 +169,13 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 					forcedUUID = event.getForcedUUID();
 					if (isOnlineMode) {
 						state = LoginState.KEY;
-						networkManager.sendPacket(new PacketLoginOutEncryptionBegin("", server.O().getPublic(), randomBytes));
+						networkManager.sendPacket(new PacketLoginOutEncryptionBegin("", MinecraftServerWrapper.getEncryptionKeyPair().getPublic(), randomBytes));
 					} else {
 						new PlayerLookupUUID(AbstractLoginListener.this, isOnlineMode).run();
 					}
 				} catch (Throwable t) {
 					AbstractLoginListener.this.disconnect("Error occured while logging in");
-					if (ServerPlatformUtils.isDebugging()) {
+					if (MinecraftServerWrapper.isDebugging()) {
 						t.printStackTrace();
 					}
 				}
@@ -195,7 +191,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 			@Override
 			public void run() {
 				try {
-					final PrivateKey privatekey = server.O().getPrivate();
+					final PrivateKey privatekey = MinecraftServerWrapper.getEncryptionKeyPair().getPrivate();
 					if (!Arrays.equals(randomBytes, packetlogininencryptionbegin.b(privatekey))) {
 						throw new IllegalStateException("Invalid nonce!");
 					}
@@ -204,7 +200,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 					new PlayerLookupUUID(AbstractLoginListener.this, isOnlineMode).run();
 				} catch (Throwable t) {
 					AbstractLoginListener.this.disconnect("Error occured while logging in");
-					if (ServerPlatformUtils.isDebugging()) {
+					if (MinecraftServerWrapper.isDebugging()) {
 						t.printStackTrace();
 					}
 				}
@@ -233,7 +229,7 @@ public abstract class AbstractLoginListener implements PacketLoginInListener, IT
 			profile = newProfile;
 		}
 		if (hasCompression()) {
-			final int threshold = ServerPlatformUtils.getServer().aF();
+			final int threshold = MinecraftServerWrapper.getCompressionThreshold();
 			if (threshold >= 0) {
 				this.networkManager.sendPacket(
 					new PacketLoginOutSetCompression(threshold),

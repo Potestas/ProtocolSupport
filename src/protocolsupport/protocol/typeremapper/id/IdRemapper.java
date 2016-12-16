@@ -1,13 +1,18 @@
 package protocolsupport.protocol.typeremapper.id;
 
+import java.util.ArrayList;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 
 import protocolsupport.api.ProtocolSupportAPI;
 import protocolsupport.api.ProtocolVersion;
 import protocolsupport.api.remapper.BlockRemapperControl;
+import protocolsupport.protocol.typeremapper.id.RemappingRegistry.GenericRemappingRegistry;
 import protocolsupport.protocol.typeremapper.id.RemappingRegistry.IdRemappingRegistry;
 import protocolsupport.protocol.typeremapper.id.RemappingTable.ArrayBasedIdRemappingTable;
+import protocolsupport.protocol.typeremapper.id.RemappingTable.GenericRemappingTable;
 import protocolsupport.protocol.typeremapper.id.RemappingTable.HashMapBasedIdRemappingTable;
 import protocolsupport.utils.ProtocolVersionsHelper;
 
@@ -15,8 +20,25 @@ public class IdRemapper {
 
 	public static final IdRemappingRegistry<ArrayBasedIdRemappingTable> BLOCK = new IdRemappingRegistry<ArrayBasedIdRemappingTable>() {
 		{
-			registerRemapEntry(Material.STRUCTURE_VOID, Material.COBBLESTONE, ProtocolVersionsHelper.BEFORE_1_10);
-			registerRemapEntry(Material.NETHER_WART_BLOCK, Material.STONE, ProtocolVersionsHelper.BEFORE_1_10);
+			registerRemapEntry(Material.OBSERVER, Material.FURNACE, 2, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.WHITE_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.ORANGE_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.MAGENTA_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.LIGHT_BLUE_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.YELLOW_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.LIME_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.PINK_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.GRAY_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.SILVER_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.CYAN_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.PURPLE_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.BLUE_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.BROWN_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.GREEN_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.RED_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.BLACK_SHULKER_BOX, Material.WORKBENCH, 0, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.STRUCTURE_VOID, Material.GLASS, ProtocolVersionsHelper.BEFORE_1_10);
+			registerRemapEntry(Material.NETHER_WART_BLOCK, Material.WOOL, 14, ProtocolVersionsHelper.BEFORE_1_10);
 			registerRemapEntry(Material.RED_NETHER_BRICK, Material.NETHER_BRICK, ProtocolVersionsHelper.BEFORE_1_10);
 			registerRemapEntry(Material.MAGMA, Material.NETHERRACK, ProtocolVersionsHelper.BEFORE_1_10);
 			registerRemapEntry(Material.BONE_BLOCK, Material.BRICK, ProtocolVersionsHelper.BEFORE_1_10);
@@ -29,7 +51,6 @@ public class IdRemapper {
 			registerRemapEntry(Material.PURPUR_PILLAR, Material.STONE, 0, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.END_BRICKS, Material.ENDER_STONE, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.FROSTED_ICE, Material.ICE, ProtocolVersionsHelper.BEFORE_1_9);
-			//TODO: change grass path strength
 			registerRemapEntry(Material.GRASS_PATH, Material.SOIL, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.PURPUR_BLOCK, Material.STONE, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.PURPUR_STAIRS, Material.COBBLESTONE_STAIRS, ProtocolVersionsHelper.BEFORE_1_9);
@@ -49,19 +70,16 @@ public class IdRemapper {
 			registerRemapEntry(Material.RED_SANDSTONE_STAIRS, Material.SANDSTONE_STAIRS, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.DOUBLE_STONE_SLAB2, Material.DOUBLE_STEP, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.STONE_SLAB2, Material.STEP, ProtocolVersionsHelper.BEFORE_1_8);
-			// all fence gates -> fence gate
 			registerRemapEntry(Material.SPRUCE_FENCE_GATE, Material.FENCE_GATE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.BIRCH_FENCE_GATE, Material.FENCE_GATE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.JUNGLE_FENCE_GATE, Material.FENCE_GATE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.DARK_OAK_FENCE_GATE, Material.FENCE_GATE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.ACACIA_FENCE_GATE, Material.FENCE_GATE, ProtocolVersionsHelper.BEFORE_1_8);
-			// all fences -> fence
 			registerRemapEntry(Material.SPRUCE_FENCE, Material.FENCE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.BIRCH_FENCE, Material.FENCE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.JUNGLE_FENCE, Material.FENCE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.DARK_OAK_FENCE, Material.FENCE, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.ACACIA_FENCE, Material.FENCE, ProtocolVersionsHelper.BEFORE_1_8);
-			// all doors -> door
 			registerRemapEntry(Material.SPRUCE_DOOR, Material.WOODEN_DOOR, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.BIRCH_DOOR, Material.WOODEN_DOOR, ProtocolVersionsHelper.BEFORE_1_8);
 			registerRemapEntry(Material.JUNGLE_DOOR, Material.WOODEN_DOOR, ProtocolVersionsHelper.BEFORE_1_8);
@@ -78,12 +96,11 @@ public class IdRemapper {
 			registerRemapEntry(Material.PACKED_ICE, Material.WOOL, 3, ProtocolVersionsHelper.BEFORE_1_7);
 			registerRemapEntry(Material.STAINED_CLAY, Material.STONE, ProtocolVersionsHelper.BEFORE_1_6);
 			registerRemapEntry(Material.HAY_BLOCK, Material.STONE, ProtocolVersionsHelper.BEFORE_1_6);
-			//TODO: see if remapping to trapdoor is better
-			registerRemapEntry(Material.CARPET, Material.STONE_PLATE, ProtocolVersionsHelper.BEFORE_1_6);
-			registerRemapEntry(Material.HARD_CLAY, Material.STONE, ProtocolVersionsHelper.BEFORE_1_6);
+			registerRemapEntry(Material.CARPET, Material.SNOW, 0, ProtocolVersionsHelper.BEFORE_1_6);
+			registerRemapEntry(Material.HARD_CLAY, Material.STONE, 0, ProtocolVersionsHelper.BEFORE_1_6);
 			registerRemapEntry(Material.COAL_BLOCK, Material.OBSIDIAN, ProtocolVersionsHelper.BEFORE_1_6);
-			registerRemapEntry(Material.DROPPER, Material.FURNACE, 0, ProtocolVersionsHelper.BEFORE_1_5);
-			registerRemapEntry(Material.HOPPER, Material.FURNACE, 0, ProtocolVersionsHelper.BEFORE_1_5);
+			registerRemapEntry(Material.DROPPER, Material.FURNACE, ProtocolVersionsHelper.BEFORE_1_5);
+			registerRemapEntry(Material.HOPPER, Material.FURNACE, ProtocolVersionsHelper.BEFORE_1_5);
 			registerRemapEntry(Material.QUARTZ, Material.STONE, ProtocolVersionsHelper.BEFORE_1_5);
 			registerRemapEntry(Material.QUARTZ_STAIRS, Material.SMOOTH_STAIRS, ProtocolVersionsHelper.BEFORE_1_5);
 			registerRemapEntry(Material.DAYLIGHT_DETECTOR_INVERTED, Material.STEP, 0, ProtocolVersionsHelper.BEFORE_1_5);
@@ -126,6 +143,8 @@ public class IdRemapper {
 					}
 				}
 			}
+			registerRemapEntry(Material.SHULKER_SHELL, Material.COBBLESTONE, ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry(Material.TOTEM, Material.COBBLESTONE, ProtocolVersionsHelper.BEFORE_1_11);
 			registerRemapEntry(Material.BEETROOT, Material.BROWN_MUSHROOM, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.BEETROOT_SOUP, Material.MUSHROOM_SOUP, ProtocolVersionsHelper.BEFORE_1_9);
 			registerRemapEntry(Material.BEETROOT_SEEDS, Material.SEEDS, ProtocolVersionsHelper.BEFORE_1_9);
@@ -193,13 +212,86 @@ public class IdRemapper {
 	};
 
 	public static final IdRemappingRegistry<ArrayBasedIdRemappingTable> ENTITY_LIVING = new IdRemappingRegistry<ArrayBasedIdRemappingTable>() {
+		final class Mapping {
+			private final EntityType from;
+			private final ArrayList<ImmutablePair<EntityType, ProtocolVersion[]>> remaps = new ArrayList<>();
+			public Mapping(EntityType from) {
+				this.from = from;
+			}
+			public Mapping addMapping(EntityType to, ProtocolVersion... versions) {
+				remaps.add(ImmutablePair.of(to, versions));
+				return this;
+			}
+			public void register() {
+				for (ImmutablePair<EntityType, ProtocolVersion[]> pair : remaps) {
+					registerRemapEntry(from, pair.getLeft(), pair.getRight());
+				}
+			}
+		}
 		{
-			registerRemapEntry(EntityType.POLAR_BEAR, EntityType.SPIDER, ProtocolVersionsHelper.BEFORE_1_10);
-			registerRemapEntry(EntityType.SHULKER, EntityType.BLAZE, ProtocolVersionsHelper.BEFORE_1_9);
-			registerRemapEntry(EntityType.ENDERMITE, EntityType.SILVERFISH, ProtocolVersionsHelper.BEFORE_1_8);
-			registerRemapEntry(EntityType.GUARDIAN, EntityType.SQUID, ProtocolVersionsHelper.BEFORE_1_8);
-			registerRemapEntry(EntityType.RABBIT, EntityType.CHICKEN, ProtocolVersionsHelper.BEFORE_1_8);
-			registerRemapEntry(EntityType.HORSE, EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6);
+			new Mapping(EntityType.VINDICATOR)
+			.addMapping(EntityType.WITCH, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.EVOKER)
+			.addMapping(EntityType.WITCH, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.VEX)
+			.addMapping(EntityType.BLAZE, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.ZOMBIE_VILLAGER)
+			.addMapping(EntityType.ZOMBIE, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.HUSK)
+			.addMapping(EntityType.ZOMBIE, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.SKELETON_HORSE)
+			.addMapping(EntityType.HORSE, ProtocolVersionsHelper.RANGE__1_6__1_10)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
+			new Mapping(EntityType.ZOMBIE_HORSE)
+			.addMapping(EntityType.HORSE, ProtocolVersionsHelper.RANGE__1_6__1_10)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
+			new Mapping(EntityType.DONKEY)
+			.addMapping(EntityType.HORSE, ProtocolVersionsHelper.RANGE__1_6__1_10)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
+			new Mapping(EntityType.MULE)
+			.addMapping(EntityType.HORSE, ProtocolVersionsHelper.RANGE__1_6__1_10)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
+			new Mapping(EntityType.LLAMA)
+			.addMapping(EntityType.HORSE, ProtocolVersionsHelper.RANGE__1_6__1_10)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
+			new Mapping(EntityType.WITHER_SKELETON)
+			.addMapping(EntityType.SKELETON, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.STRAY)
+			.addMapping(EntityType.SKELETON, ProtocolVersionsHelper.BEFORE_1_11)
+			.register();
+			new Mapping(EntityType.POLAR_BEAR)
+			.addMapping(EntityType.SPIDER, ProtocolVersionsHelper.BEFORE_1_10)
+			.register();
+			new Mapping(EntityType.SHULKER)
+			.addMapping(EntityType.BLAZE, ProtocolVersionsHelper.BEFORE_1_9)
+			.register();
+			new Mapping(EntityType.ENDERMITE)
+			.addMapping(EntityType.SILVERFISH, ProtocolVersionsHelper.BEFORE_1_8)
+			.register();
+			new Mapping(EntityType.RABBIT)
+			.addMapping(EntityType.CHICKEN, ProtocolVersionsHelper.BEFORE_1_8)
+			.register();
+			new Mapping(EntityType.ELDER_GUARDIAN)
+			.addMapping(EntityType.GUARDIAN, ProtocolVersion.getAllBetween(ProtocolVersion.MINECRAFT_1_8, ProtocolVersion.MINECRAFT_1_10))
+			.addMapping(EntityType.SQUID, ProtocolVersionsHelper.BEFORE_1_8)
+			.register();
+			new Mapping(EntityType.GUARDIAN)
+			.addMapping(EntityType.SQUID, ProtocolVersionsHelper.BEFORE_1_8)
+			.register();
+			new Mapping(EntityType.HORSE)
+			.addMapping(EntityType.COW, ProtocolVersionsHelper.BEFORE_1_6)
+			.register();
 		}
 		@SuppressWarnings("deprecation")
 		private void registerRemapEntry(EntityType from, EntityType to, ProtocolVersion... versions) {
@@ -213,6 +305,10 @@ public class IdRemapper {
 
 	public static final IdRemappingRegistry<ArrayBasedIdRemappingTable> ENTITY_OBJECT = new IdRemappingRegistry<ArrayBasedIdRemappingTable>() {
 		{
+			//evocation fangs -> firecharge
+			registerRemapEntry(79, 64, ProtocolVersionsHelper.BEFORE_1_11);
+			//lama spit -> snowball
+			registerRemapEntry(68, 61, ProtocolVersionsHelper.BEFORE_1_11);
 			//shulker bullet -> firecharge
 			registerRemapEntry(67, 64, ProtocolVersionsHelper.BEFORE_1_9);
 			//dragon fireball -> firecharge
@@ -271,6 +367,17 @@ public class IdRemapper {
 		@Override
 		protected HashMapBasedIdRemappingTable createTable() {
 			return new HashMapBasedIdRemappingTable();
+		}
+	};
+
+	public static final GenericRemappingRegistry<String, GenericRemappingTable<String>> INVENTORY = new GenericRemappingRegistry<String, GenericRemappingTable<String>>() {
+		{
+			registerRemapEntry("minecraft:shulker_box", "minecraft:chest", ProtocolVersionsHelper.BEFORE_1_11);
+			registerRemapEntry("minecraft:dropper", "minecraft:dispenser", ProtocolVersionsHelper.BEFORE_1_5);
+		}
+		@Override
+		protected GenericRemappingTable<String> createTable() {
+			return new GenericRemappingTable<>();
 		}
 	};
 

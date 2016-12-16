@@ -13,8 +13,9 @@ import java.util.zip.GZIPOutputStream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.v1_10_R1.inventory.CraftItemStack;
-import org.bukkit.craftbukkit.v1_10_R1.potion.CraftPotionUtil;
+import org.bukkit.craftbukkit.v1_11_R1.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_11_R1.potion.CraftPotionUtil;
+import org.bukkit.entity.EntityType;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
@@ -29,26 +30,25 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
-import net.minecraft.server.v1_10_R1.NBTCompressedStreamTools;
-import net.minecraft.server.v1_10_R1.NBTReadLimiter;
+import net.minecraft.server.v1_11_R1.NBTCompressedStreamTools;
+import net.minecraft.server.v1_11_R1.NBTReadLimiter;
 import protocolsupport.api.ProtocolVersion;
 import protocolsupport.api.chat.ChatAPI;
 import protocolsupport.api.events.ItemStackWriteEvent;
+import protocolsupport.protocol.legacyremapper.LegacyEntityType;
 import protocolsupport.protocol.legacyremapper.LegacyPotion;
 import protocolsupport.protocol.typeremapper.id.IdRemapper;
 import protocolsupport.protocol.typeskipper.id.IdSkipper;
-import protocolsupport.protocol.typeskipper.id.SkippingTable;
+import protocolsupport.protocol.typeskipper.id.SkippingTable.IntSkippingTable;
 import protocolsupport.protocol.utils.GameProfileSerializer;
-import protocolsupport.protocol.utils.types.ItemStackWrapper;
 import protocolsupport.protocol.utils.types.MerchantData;
 import protocolsupport.protocol.utils.types.MerchantData.TradeOffer;
-import protocolsupport.protocol.utils.types.NBTTagCompoundWrapper;
-import protocolsupport.protocol.utils.types.NBTTagListWrapper;
 import protocolsupport.protocol.utils.types.Position;
-import protocolsupport.utils.ServerPlatformUtils;
 import protocolsupport.utils.netty.Allocator;
-import protocolsupport.utils.netty.ChannelUtils;
 import protocolsupport.utils.netty.WrappingBuffer;
+import protocolsupport.utils.nms.ItemStackWrapper;
+import protocolsupport.utils.nms.NBTTagCompoundWrapper;
+import protocolsupport.utils.nms.NBTTagListWrapper;
 
 public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 
@@ -64,11 +64,11 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 	}
 
 	public int readVarInt() {
-		return ChannelUtils.readVarInt(this);
+		return readVarInt(this);
 	}
 
 	public void writeVarInt(int varint) {
-		ChannelUtils.writeVarInt(this, varint);
+		writeVarInt(this, varint);
 	}
 
 	public long readVarLong() {
@@ -118,11 +118,11 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 		if (getVersion().isBeforeOrEq(ProtocolVersion.MINECRAFT_1_6_4)) {
 			int length = readUnsignedShort() * 2;
 			checkLimit(length, limit * 4);
-			return new String(ChannelUtils.toArray(readSlice(length)), StandardCharsets.UTF_16BE);
+			return new String(ProtocolSupportPacketDataSerializer.toArray(readSlice(length)), StandardCharsets.UTF_16BE);
 		} else {
 			int length = readVarInt();
 			checkLimit(length, limit * 4);
-			return new String(ChannelUtils.toArray(readSlice(length)), StandardCharsets.UTF_8);
+			return new String(ProtocolSupportPacketDataSerializer.toArray(readSlice(length)), StandardCharsets.UTF_8);
 		}
 	}
 
@@ -328,6 +328,7 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private ItemStackWrapper transformItemStack(ItemStackWrapper original) {
 		ItemStackWrapper itemstack = original.cloneItemStack();
 		Material item = itemstack.getType();
@@ -377,10 +378,23 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 					}
 				}
 			}
+			if (getVersion().isBetween(ProtocolVersion.MINECRAFT_1_10, ProtocolVersion.MINECRAFT_1_9)) {
+				NBTTagCompoundWrapper entitytag = nbttagcompound.getCompound("EntityTag");
+				String entityId = entitytag.getString("id");
+				if (!entityId.isEmpty()) {
+					entitytag.setString("id", LegacyEntityType.getLegacyName(entityId));
+				}
+			}
 			if (getVersion().isBefore(ProtocolVersion.MINECRAFT_1_9) && (item == Material.MONSTER_EGG)) {
 				String entityId = nbttagcompound.getCompound("EntityTag").getString("id");
 				if (!entityId.isEmpty()) {
-					itemstack.setData(ServerPlatformUtils.getEntityIdByName(entityId));
+					if (entityId.startsWith("minecraft:")) {
+						entityId = entityId.substring("minecraft:".length());
+					}
+					EntityType type = EntityType.fromName(entityId);
+					if (type != null) {
+						itemstack.setData(type.getTypeId());
+					}
 				}
 			}
 			if (nbttagcompound.hasKeyOfType("ench", NBTTagCompoundWrapper.TYPE_LIST)) {
@@ -398,7 +412,7 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 	}
 
 	private NBTTagListWrapper filterEnchantList(NBTTagListWrapper oldList) {
-		SkippingTable enchSkip = IdSkipper.ENCHANT.getTable(getVersion());
+		IntSkippingTable enchSkip = IdSkipper.ENCHANT.getTable(getVersion());
 		NBTTagListWrapper newList = NBTTagListWrapper.create();
 		for (int i = 0; i < oldList.size(); i++) {
 			NBTTagCompoundWrapper enchData = oldList.getCompound(i);
@@ -470,6 +484,34 @@ public class ProtocolSupportPacketDataSerializer extends WrappingBuffer {
 			return wrapped;
 		}
 
+	}
+
+	public static byte[] toArray(ByteBuf buf) {
+		byte[] result = new byte[buf.readableBytes()];
+		buf.readBytes(result);
+		return result;
+	}
+
+	public static int readVarInt(ByteBuf from) {
+		int value = 0;
+		int length = 0;
+		byte part;
+		do {
+			part = from.readByte();
+			value |= (part & 0x7F) << (length++ * 7);
+			if (length > 5) {
+				throw new DecoderException("VarInt too big");
+			}
+		} while (part < 0);
+		return value;
+	}
+
+	public static void writeVarInt(ByteBuf to, int i) {
+		while ((i & 0xFFFFFF80) != 0x0) {
+			to.writeByte(i | 0x80);
+			i >>>= 7;
+		}
+		to.writeByte(i);
 	}
 
 }

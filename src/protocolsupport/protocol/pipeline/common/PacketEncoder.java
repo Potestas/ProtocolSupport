@@ -6,13 +6,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.EncoderException;
 import io.netty.handler.codec.MessageToByteEncoder;
-import net.minecraft.server.v1_10_R1.EnumProtocol;
-import net.minecraft.server.v1_10_R1.EnumProtocolDirection;
-import net.minecraft.server.v1_10_R1.NetworkManager;
-import net.minecraft.server.v1_10_R1.Packet;
-import net.minecraft.server.v1_10_R1.PacketDataSerializer;
-import net.minecraft.server.v1_10_R1.PacketListener;
-import protocolsupport.utils.netty.ChannelUtils;
+import net.minecraft.server.v1_11_R1.EnumProtocol;
+import net.minecraft.server.v1_11_R1.EnumProtocolDirection;
+import net.minecraft.server.v1_11_R1.NetworkManager;
+import net.minecraft.server.v1_11_R1.Packet;
+import net.minecraft.server.v1_11_R1.PacketDataSerializer;
+import net.minecraft.server.v1_11_R1.PacketListener;
+import protocolsupport.protocol.serializer.ProtocolSupportPacketDataSerializer;
 import protocolsupport.utils.netty.WrappingBuffer;
 
 public class PacketEncoder extends MessageToByteEncoder<Packet<PacketListener>> {
@@ -28,7 +28,7 @@ public class PacketEncoder extends MessageToByteEncoder<Packet<PacketListener>> 
 			throw new EncoderException("Can't serialize unregistered packet " + packet.getClass().getName());
 		}
 		wrapper.setBuf(data);
-		ChannelUtils.writeVarInt(wrapper, packetId);
+		ProtocolSupportPacketDataSerializer.writeVarInt(wrapper, packetId);
 		try {
 			packet.b(nativeSerializer);
 		} catch (IOException e) {

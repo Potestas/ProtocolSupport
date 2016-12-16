@@ -2,20 +2,34 @@ package protocolsupport.protocol.typeremapper.nbt.tileupdate;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 
 import protocolsupport.api.ProtocolVersion;
+import protocolsupport.protocol.legacyremapper.LegacyEntityType;
 import protocolsupport.protocol.serializer.ProtocolSupportPacketDataSerializer;
 import protocolsupport.protocol.typeremapper.id.IdRemapper;
-import protocolsupport.protocol.utils.types.NBTTagCompoundWrapper;
+import protocolsupport.protocol.utils.types.Position;
 import protocolsupport.utils.ProtocolVersionsHelper;
-import protocolsupport.utils.ServerPlatformUtils;
 import protocolsupport.utils.Utils;
+import protocolsupport.utils.nms.NBTTagCompoundWrapper;
+import protocolsupport.utils.nms.NMSUtils;
 
 public class TileNBTTransformer {
 
-	public static enum TileEntityUpdateType {
-		UNKNOWN, MOB_SPAWNER, COMMAND_BLOCK, BEACON, SKULL, FLOWER_POT, BANNER, STRUCTURE, END_GATEWAY, SIGN;
+	private static final String tileEntityTypeKey = "id";
+
+	private static final HashMap<String, String> newToOldType = new HashMap<>();
+	static {
+		newToOldType.put("minecraft:mob_spawner", "MobSpawner");
+		newToOldType.put("minecraft:command_block", "Control");
+		newToOldType.put("minecraft:beacon", "Beacon");
+		newToOldType.put("minecraft:skull", "Skull");
+		newToOldType.put("minecraft:flower_pot", "FlowerPot");
+		newToOldType.put("minecraft:banner", "Banner");
+		newToOldType.put("minecraft:structure_block", "Structure");
+		newToOldType.put("minecraft:end_gateway", "Airportal");
+		newToOldType.put("minecraft:sign", "Sign");
 	}
 
 	private static final EnumMap<TileEntityUpdateType, EnumMap<ProtocolVersion, List<SpecificTransformer>>> registry = new EnumMap<>(TileEntityUpdateType.class);
@@ -28,6 +42,41 @@ public class TileNBTTransformer {
 	}
 
 	static {
+		for (TileEntityUpdateType type : TileEntityUpdateType.values()) {
+			register(
+				type,
+				(version, input) -> {
+					input.setString(tileEntityTypeKey, newToOldType.getOrDefault(input.getString(tileEntityTypeKey), "Unknown"));
+					return input;
+				},
+				ProtocolVersionsHelper.BEFORE_1_11
+			);
+		}
+		register(TileEntityUpdateType.MOB_SPAWNER,
+			(version, input) -> {
+				if (!input.hasKeyOfType("SpawnData", NBTTagCompoundWrapper.TYPE_COMPOUND)) {
+					NBTTagCompoundWrapper spawndata = NBTTagCompoundWrapper.createEmpty();
+					spawndata.setString("id", "minecraft:pig");
+					input.setCompound("SpawnData", spawndata);
+				}
+				return input;
+			},
+			ProtocolVersionsHelper.ALL
+		);
+		register(
+			TileEntityUpdateType.MOB_SPAWNER,
+			(version, input) -> {
+				NBTTagCompoundWrapper spawndata = input.getCompound("SpawnData");
+				if (!spawndata.isNull()) {
+					String mobname = spawndata.getString("id");
+					if (!mobname.isEmpty()) {
+						spawndata.setString("id", LegacyEntityType.getLegacyName(mobname));
+					}
+				}
+				return input;
+			},
+			ProtocolVersion.getAllBetween(ProtocolVersion.MINECRAFT_1_9, ProtocolVersion.MINECRAFT_1_10)
+		);
 		register(
 			TileEntityUpdateType.MOB_SPAWNER,
 			(version, input) -> {
@@ -37,7 +86,7 @@ public class TileNBTTransformer {
 				if (!spawndata.isNull()) {
 					String mobname = spawndata.getString("id");
 					if (!mobname.isEmpty()) {
-						input.setString("EntityId", mobname);
+						input.setString("EntityId", LegacyEntityType.getLegacyName(mobname));
 					}
 				}
 				return input;
@@ -66,7 +115,7 @@ public class TileNBTTransformer {
 		register(
 			TileEntityUpdateType.FLOWER_POT,
 			(version, input) -> {
-				Integer id = ServerPlatformUtils.getItemIdByName(input.getString("Item"));
+				Integer id = NMSUtils.getItemIdByName(input.getString("Item"));
 				if (id != null) {
 					input.setInt("Item", IdRemapper.ITEM.getTable(version).getRemap(id));
 				}
@@ -76,8 +125,24 @@ public class TileNBTTransformer {
 		);
 	}
 
-	public static NBTTagCompoundWrapper transform(int type, ProtocolVersion version, NBTTagCompoundWrapper compound) {
-		EnumMap<ProtocolVersion, List<SpecificTransformer>> map = registry.get(TileEntityUpdateType.values()[type]);
+	public static String getTileType(NBTTagCompoundWrapper tag) {
+		return tag.getString(tileEntityTypeKey);
+	}
+
+	public static Position getPosition(NBTTagCompoundWrapper tag) {
+		return new Position(tag.getNumber("x"), tag.getNumber("y"), tag.getNumber("z"));
+	}
+
+	public static String[] getSignLines(NBTTagCompoundWrapper tag) {
+		String[] lines = new String[4];
+		for (int i = 0; i < lines.length; i++) {
+			lines[i] = tag.getString("Text" + (i + 1));
+		}
+		return lines;
+	}
+
+	public static NBTTagCompoundWrapper transform(ProtocolVersion version, NBTTagCompoundWrapper compound) {
+		EnumMap<ProtocolVersion, List<SpecificTransformer>> map = registry.get(TileEntityUpdateType.fromType(getTileType(compound)));
 		if (map != null) {
 			List<SpecificTransformer> transformers = map.get(version);
 			if (transformers != null) {

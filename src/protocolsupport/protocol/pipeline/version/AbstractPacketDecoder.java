@@ -3,17 +3,17 @@ package protocolsupport.protocol.pipeline.version;
 import java.util.List;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.codec.MessageToMessageDecoder;
 import protocolsupport.api.Connection;
 import protocolsupport.protocol.packet.middle.ServerBoundMiddlePacket;
 import protocolsupport.protocol.packet.middleimpl.ServerBoundPacketData;
+import protocolsupport.protocol.serializer.ProtocolSupportPacketDataSerializer;
 import protocolsupport.protocol.storage.NetworkDataCache;
 import protocolsupport.protocol.utils.registry.MiddleTransformerRegistry;
 import protocolsupport.utils.netty.Allocator;
-import protocolsupport.utils.netty.ChannelUtils;
 import protocolsupport.utils.recyclable.RecyclableCollection;
 
-public abstract class AbstractPacketDecoder extends ByteToMessageDecoder {
+public abstract class AbstractPacketDecoder extends MessageToMessageDecoder<ByteBuf> {
 
 	protected final MiddleTransformerRegistry<ServerBoundMiddlePacket> registry = new MiddleTransformerRegistry<>();
 
@@ -32,7 +32,7 @@ public abstract class AbstractPacketDecoder extends ByteToMessageDecoder {
 		try {
 			for (ServerBoundPacketData packetdata : packets) {
 				ByteBuf receivedata = Allocator.allocateBuffer();
-				ChannelUtils.writeVarInt(receivedata, packetdata.getPacketId());
+				ProtocolSupportPacketDataSerializer.writeVarInt(receivedata, packetdata.getPacketId());
 				receivedata.writeBytes(packetdata);
 				to.add(receivedata);
 			}
