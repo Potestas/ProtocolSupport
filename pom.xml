@@ -52,5 +52,6 @@
 				<directory>resources</directory>
 			</resource>
 		</resources>
+		<finalName>${project.name}</finalName>
 	</build>
 </project>
