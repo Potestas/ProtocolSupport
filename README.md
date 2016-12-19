@@ -22,7 +22,26 @@ Wontfix issues:
 
 Spigot: http://www.spigotmc.org/resources/protocolsupport.7201/
 
-Jenkins: http://build.true-games.org/job/ProtocolSupport/
+Jenkins: https://ci.potestas.xyz/job/ProtocolSupport/
+
+Maven:
+```
+<repositories>
+	<repository>
+		<id>potestas-repo</id>
+		<url>https://mvn.potestas.xyz/</url>
+	</repository>
+</repositories>
+<dependencies>
+    <!--ProtocolSupport API-->
+    <dependency>
+           <groupId>protocolsupport</groupId>
+           <artifactId>protocolsupport</artifactId>
+           <version>4.25.dev</version>
+           <scope>provided</scope>
+    </dependency>
+</dependencies>
+```
 
 ================
 
